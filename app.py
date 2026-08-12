@@ -1,45 +1,42 @@
-from flask import Flask, redirect, url_for, render_template
-from config import Config
-from models import db
-from flask_login import LoginManager, current_user
+from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from models import Base, engine, SessionLocal
+from auth import router as auth_router, manager
+from users import router as users_router
+from logs import router as logs_router
+from activity import router as activity_router
 
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
-    db.init_app(app)
-    login_manager = LoginManager()
-    login_manager.login_view = 'auth.login'
-    login_manager.init_app(app)
+# Подключаем роутеры
+app.include_router(auth_router)
+app.include_router(users_router, prefix="/users")
+app.include_router(logs_router, prefix="/logs")
+app.include_router(activity_router, prefix="/activity")
 
-    from models import User
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
+# Создание таблиц при старте (только для разработки, в продакшене использовать миграции)
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
 
-    # Регистрация blueprint'ов
-    from auth import auth_bp
-    app.register_blueprint(auth_bp)
-    from users import users_bp
-    app.register_blueprint(users_bp, url_prefix='/users')
-    from logs import logs_bp
-    app.register_blueprint(logs_bp, url_prefix='/logs')
-    from activity import activity_bp
-    app.register_blueprint(activity_bp, url_prefix='/activity')
+# Dependency для получения сессии БД
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    @app.route('/')
-    def index():
-        if not current_user.is_authenticated:
-            return redirect(url_for('auth.login'))
-        if current_user.role == 'admin':
-            return redirect(url_for('users.user_list'))
-        # Обычный пользователь видит пустую страницу
-        return render_template('dashboard.html')
-
-    with app.app_context():
-        db.create_all()
-
-    return app
-
-if __name__ == '__main__':
-    create_app().run(host='0.0.0.0', port=5000, debug=False)
+# Главная страница
+@app.get("/")
+def index(request: Request, user=Depends(manager.optional)):
+    if not user:
+        return RedirectResponse(url="/login")
+    if user.role == "admin":
+        return RedirectResponse(url="/users")
+    return templates.TemplateResponse("dashboard.html", {"request": request, "current_user": user})

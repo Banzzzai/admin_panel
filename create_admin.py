@@ -1,14 +1,22 @@
-from app import create_app
-from models import db, User
-from werkzeug.security import generate_password_hash
+from models import SessionLocal, User
+from auth import hash_password
 
-app = create_app()
-with app.app_context():
-    admin = User(
-        username='admin',
-        password_hash=generate_password_hash('admin123'),
-        role='admin'
-    )
-    db.session.add(admin)
-    db.session.commit()
-    print('Администратор создан: логин admin, пароль admin123')
+if __name__ == "__main__":
+    db = SessionLocal()
+    try:
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            admin = User(
+                username="admin",
+                password_hash=hash_password("admin123"),
+                role="admin"
+            )
+            db.add(admin)
+            db.commit()
+            print("Администратор создан: логин admin, пароль admin123")
+        else:
+            admin.password_hash = hash_password("admin123")
+            db.commit()
+            print("Пароль администратора обновлён")
+    finally:
+        db.close()

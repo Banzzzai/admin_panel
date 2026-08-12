@@ -33,18 +33,18 @@
     </tbody>
 </table>
 
-<!-- Навигация пагинации -->
+<!-- Пагинация -->
 <nav aria-label="Навигация по истории">
     <ul class="pagination justify-content-center">
-        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('activity.user_activity_detail', user_id=user.id, page=pagination.prev_num) if pagination.has_prev else '#' }}">Предыдущие</a>
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="/activity/user/{{ user.id }}?page={{ page - 1 }}" tabindex="-1">Предыдущие</a>
         </li>
-        <li class="page-item disabled"><span class="page-link">{{ pagination.page }} / {{ pagination.pages }}</span></li>
-        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('activity.user_activity_detail', user_id=user.id, page=pagination.next_num) if pagination.has_next else '#' }}">Следующие</a>
+        <li class="page-item disabled"><span class="page-link">{{ page }} / {{ total_pages }}</span></li>
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="/activity/user/{{ user.id }}?page={{ page + 1 }}">Следующие</a>
         </li>
     </ul>
 </nav>
 
-<a href="{{ url_for('activity.user_activity') }}" class="btn btn-secondary">← Назад к общей активности</a>
+<a href="/activity" class="btn btn-secondary">← Назад к общей активности</a>
 {% endblock %}

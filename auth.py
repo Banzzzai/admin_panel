@@ -1,44 +1,73 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
-from models import db, User, UserSession
+from fastapi import APIRouter, Request, Depends, HTTPException, Form
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi_login import LoginManager
+from sqlalchemy.orm import Session
+from models import User, UserSession, SessionLocal
+from config import Config
 from datetime import datetime
+import bcrypt
 
-auth_bp = Blueprint('auth', __name__)
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+manager = LoginManager(Config.SECRET_KEY, token_url="/login", use_cookie=True)
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            ip = request.remote_addr
-            ua = request.headers.get('User-Agent', '')
-            session = UserSession(user_id=user.id,
-                                  ip_address=ip,
-                                  user_agent=ua)
-            db.session.add(session)
-            db.session.commit()
-            flash('Вход выполнен', 'success')
-            if user.role == 'admin':
-                return redirect(url_for('users.user_list'))
-            else:
-                return redirect(url_for('index'))
-        flash('Неверные учётные данные', 'danger')
-    return render_template('login.html')
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-@auth_bp.route('/logout')
-@login_required
-def logout():
-    active_sessions = UserSession.query.filter_by(
-        user_id=current_user.id, is_active=True
-    ).all()
-    for s in active_sessions:
-        s.is_active = False
-        s.logout_time = datetime.utcnow()
-    db.session.commit()
-    logout_user()
-    flash('Вы вышли', 'info')
-    return redirect(url_for('auth.login'))
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+@manager.user_loader()
+def load_user(username: str):
+    db = SessionLocal()
+    try:
+        return db.query(User).filter(User.username == username).first()
+    finally:
+        db.close()
+
+@router.get("/login")
+def login_form(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@router.post("/login")
+def login(request: Request,
+          username: str = Form(...),
+          password: str = Form(...)):
+    user = load_user(username)
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Неверные учётные данные")
+
+    access_token = manager.create_access_token(data={"sub": user.username})
+    resp = RedirectResponse(url="/", status_code=303)
+    manager.set_cookie(resp, access_token)
+
+    db = SessionLocal()
+    try:
+        ip = request.client.host
+        ua = request.headers.get('User-Agent', '')
+        session = UserSession(user_id=user.id, ip_address=ip, user_agent=ua)
+        db.add(session)
+        db.commit()
+    finally:
+        db.close()
+
+    return resp
+
+@router.get("/logout")
+def logout(request: Request):
+    user = manager.optional(request)
+    if user:
+        db = SessionLocal()
+        try:
+            db.query(UserSession).filter(
+                UserSession.user_id == user.id,
+                UserSession.is_active == True
+            ).update({"is_active": False, "logout_time": datetime.utcnow()})
+            db.commit()
+        finally:
+            db.close()
+
+    resp = RedirectResponse(url="/login", status_code=303)
+    manager.set_cookie(resp, "")  # очистка куки
+    return resp

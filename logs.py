@@ -1,29 +1,21 @@
-from flask import Blueprint, render_template, flash, redirect, url_for
-from flask_login import login_required, current_user
-from functools import wraps
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from auth import manager
 import os
 
-logs_bp = Blueprint('logs', __name__)
-
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
 LOG_FILE = os.environ.get('LOG_FILE_PATH', '/var/log/auth.log')
 
-def admin_required(func):
-    @wraps(func)
-    @login_required
-    def wrapper(*args, **kwargs):
-        if current_user.role != 'admin':
-            flash('Доступ к логам разрешён только администраторам', 'danger')
-            return redirect(url_for('index'))
-        return func(*args, **kwargs)
-    return wrapper
+@router.get("/", response_class=HTMLResponse)
+def view_logs(request: Request, user=Depends(manager)):
+    if user.role != "admin":
+        return RedirectResponse(url="/", status_code=303)
 
-@logs_bp.route('/')
-@admin_required
-def view_logs():
     lines_to_show = 200
     lines = []
-
     if os.path.exists(LOG_FILE):
         try:
             with open(LOG_FILE, 'r') as f:
@@ -40,10 +32,10 @@ def view_logs():
                     buffer = chunk.splitlines(True) + buffer
                 lines = buffer[-lines_to_show:] if len(buffer) > lines_to_show else buffer
         except PermissionError:
-            lines = ['[ОШИБКА] Нет прав на чтение файла. Добавьте пользователя в группу adm.']
+            lines = ["[ОШИБКА] Нет прав на чтение файла."]
         except Exception as e:
-            lines = ['[ОШИБКА] Не удалось прочитать лог: {}'.format(str(e))]
+            lines = [f"[ОШИБКА] {str(e)}"]
     else:
-        lines = ['[ИНФО] Файл логов {} не найден.'.format(LOG_FILE)]
+        lines = [f"[ИНФО] Файл логов {LOG_FILE} не найден."]
 
-    return render_template('logs.html', lines=lines)
+    return templates.TemplateResponse("logs.html", {"request": request, "lines": lines, "current_user": user})

@@ -6,9 +6,9 @@
         <tr>
             <th>Пользователь</th>
             <th>Статус</th>
-            <th>Активность (сессии)</th>
+            <th>Активность пользователя</th>
             <th>IP-адрес</th>
-            <th>Устройство (User-Agent)</th>
+            <th>Устройство</th>
             <th>Действия</th>
         </tr>
     </thead>
@@ -24,9 +24,8 @@
                 {% endif %}
             </td>
             <td>
-                {% set all_sessions = user.sessions | sort(attribute='login_time', reverse=True) %}
-                {% if all_sessions %}
-                    {% for s in all_sessions[:10] %}
+                {% if user.all_sessions %}
+                    {% for s in user.all_sessions[:10] %}
                         {{ s.login_time.strftime('%d.%m.%Y %H:%M:%S') if s.login_time else '—' }}<br>
                     {% endfor %}
                 {% else %}
@@ -34,22 +33,22 @@
                 {% endif %}
             </td>
             <td>
-                {% if all_sessions %}
-                    {{ all_sessions[0].ip_address }}
+                {% if user.all_sessions %}
+                    {{ user.all_sessions[0].ip_address }}
                 {% else %}
                     —
                 {% endif %}
             </td>
-            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;" title="{% if all_sessions %}{{ all_sessions[0].user_agent }}{% endif %}">
-                {% if all_sessions %}
-                    {{ all_sessions[0].user_agent | truncate(60) }}
+            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;" title="{% if user.all_sessions %}{{ user.all_sessions[0].user_agent }}{% endif %}">
+                {% if user.all_sessions %}
+                    {{ user.all_sessions[0].user_agent | truncate(60) }}
                 {% else %}
                     —
                 {% endif %}
             </td>
             <td>
-                <a href="{{ url_for('activity.user_activity_detail', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">
-                    📋 История
+                <a href="/activity/user/{{ user.id }}" class="btn btn-sm btn-outline-primary">
+                    История активности
                 </a>
             </td>
         </tr>

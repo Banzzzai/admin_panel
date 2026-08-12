@@ -17,7 +17,8 @@ services:
       - "5000:5000"
     volumes:
       # Раскомментировать и указать реальный путь к логу хоста
-      - /var/log/auth.log:/var/log/auth.log:ro
+        - .:/app
+        - /var/log/auth.log:/var/log/auth.log:ro
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432

@@ -1,90 +1,102 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required, current_user
-from functools import wraps
-from models import db, User, UserSession
-from werkzeug.security import generate_password_hash
+from fastapi import APIRouter, Request, Depends, Form, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from models import User, UserSession, SessionLocal
+from auth import manager, hash_password
+import bcrypt
 
-users_bp = Blueprint('users', __name__)
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
-def admin_required(func):
-    "Ограничивает доступ: только для пользователей с ролью 'admin'."
-    @wraps(func)
-    @login_required
-    def wrapper(*args, **kwargs):
-        if current_user.role != 'admin':
-            flash('Требуются права администратора', 'danger')
-            return redirect(url_for('index'))
-        return func(*args, **kwargs)
-    return wrapper
+def admin_required(user=Depends(manager)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Требуются права администратора")
+    return user
 
-@users_bp.route('/')
-@login_required
-def user_list():
-    users = User.query.all()
-    active_session = UserSession.query.filter_by(
-        user_id=current_user.id, is_active=True
-    ).order_by(UserSession.login_time.desc()).first()
-    current_session_id = active_session.id if active_session else None
-    return render_template('users.html', users=users, current_session_id=current_session_id)
+@router.get("/")
+def user_list(request: Request, user=Depends(manager)):
+    if user.role != "admin":
+        return RedirectResponse(url="/", status_code=303)
+    db = SessionLocal()
+    try:
+        users = db.query(User).all()
+        active_session = db.query(UserSession).filter(
+            UserSession.user_id == user.id,
+            UserSession.is_active == True
+        ).order_by(UserSession.login_time.desc()).first()
+        current_session_id = active_session.id if active_session else None
+    finally:
+        db.close()
+    return templates.TemplateResponse("users.html", {
+        "request": request,
+        "current_user": user,
+        "users": users,
+        "current_session_id": current_session_id
+    })
 
-@users_bp.route('/create', methods=['POST'])
-@admin_required
-def create_user():
-    username = request.form['username']
-    password = request.form['password']
-    role = request.form.get('role', 'user')
-    if User.query.filter_by(username=username).first():
-        flash('Пользователь уже существует', 'danger')
-    else:
-        user = User(username=username,
-                    password_hash=generate_password_hash(password),
-                    role=role)
-        db.session.add(user)
-        db.session.commit()
-        flash('Пользователь создан', 'success')
-    return redirect(url_for('users.user_list'))
+@router.post("/create")
+def create_user(request: Request,
+                username: str = Form(...),
+                password: str = Form(...),
+                role: str = Form("user"),
+                user=Depends(admin_required)):
+    db = SessionLocal()
+    try:
+        if db.query(User).filter(User.username == username).first():
+            raise HTTPException(status_code=400, detail="Пользователь уже существует")
+        new_user = User(
+            username=username,
+            password_hash=hash_password(password),
+            role=role
+        )
+        db.add(new_user)
+        db.commit()
+    finally:
+        db.close()
+    return RedirectResponse(url="/users", status_code=303)
 
-@users_bp.route('/delete/<int:user_id>')
-@admin_required
-def delete_user(user_id):
-    user = User.query.get_or_404(user_id)
+@router.get("/delete/{user_id}")
+def delete_user(user_id: int, user=Depends(admin_required)):
+    db = SessionLocal()
+    try:
+        target = db.query(User).get(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        if target.id == user.id:
+            raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
+        if target.role == "admin":
+            raise HTTPException(status_code=400, detail="Нельзя удалить администратора")
+        db.delete(target)
+        db.commit()
+    finally:
+        db.close()
+    return RedirectResponse(url="/users", status_code=303)
 
-    if user.id == current_user.id:
-        flash('Нельзя удалить самого себя', 'danger')
-        return redirect(url_for('users.user_list'))
-
-    if user.role == 'admin':
-        flash('Нельзя удалить учётную запись администратора', 'danger')
-        return redirect(url_for('users.user_list'))
-
-    db.session.delete(user)
-    db.session.commit()
-    flash('Пользователь {} удалён'.format(user.username), 'success')
-    return redirect(url_for('users.user_list'))
-
-@users_bp.route('/edit/<int:user_id>', methods=['POST'])
-@admin_required
-def edit_user(user_id):
-    user = User.query.get_or_404(user_id)
-
-    if user.id == current_user.id and 'role' in request.form:
-        flash('Вы не можете изменить свою собственную роль', 'danger')
-        return redirect(url_for('users.user_list'))
-
-    new_username = request.form.get('username', '').strip()
-    if new_username and new_username != user.username:
-        if User.query.filter(User.username == new_username, User.id != user.id).first():
-            flash('Пользователь с таким логином уже существует', 'danger')
-            return redirect(url_for('users.user_list'))
-        user.username = new_username
-
-    if 'role' in request.form and user.id != current_user.id:
-        user.role = request.form['role']
-
-    new_password = request.form.get('password', '').strip()
-    if new_password:
-        user.password_hash = generate_password_hash(new_password)
-
-    db.session.commit()
-    flash('Данные пользователя {} обновлены'.format(user.username), 'success')
-    return redirect(url_for('users.user_list'))
+@router.post("/edit/{user_id}")
+def edit_user(user_id: int,
+              request: Request,
+              username: str = Form(None),
+              role: str = Form(None),
+              password: str = Form(None),
+              user=Depends(admin_required)):
+    db = SessionLocal()
+    try:
+        target = db.query(User).get(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        # смена логина
+        if username and username != target.username:
+            if db.query(User).filter(User.username == username, User.id != user_id).first():
+                raise HTTPException(status_code=400, detail="Логин занят")
+            target.username = username
+        # смена роли (только другим)
+        if role and target.id != user.id:
+            target.role = role
+        # смена пароля
+        if password:
+            target.password_hash = hash_password(password)
+        db.commit()
+    finally:
+        db.close()
+    return RedirectResponse(url="/users", status_code=303)

@@ -3,11 +3,10 @@
 <h2>Управление пользователями</h2>
 
 {% if current_user.role == 'admin' %}
-<!-- Форма создания нового пользователя -->
 <div class="card mb-4">
     <div class="card-header">Создать пользователя</div>
     <div class="card-body">
-        <form method="POST" action="{{ url_for('users.create_user') }}" class="row g-3">
+        <form method="POST" action="/users/create" class="row g-3">
             <div class="col-md-4">
                 <input type="text" name="username" class="form-control" placeholder="Логин" required>
             </div>
@@ -28,7 +27,6 @@
 </div>
 {% endif %}
 
-<!-- Таблица пользователей -->
 <table class="table table-striped table-hover">
     <thead>
         <tr>
@@ -50,11 +48,8 @@
             <td>{{ user.created_at.strftime('%d.%m.%Y %H:%M') if user.created_at else '' }}</td>
             {% if current_user.role == 'admin' %}
             <td>
-                <form method="POST" action="{{ url_for('users.edit_user', user_id=user.id) }}" class="d-flex flex-wrap gap-2 align-items-center">
-                    <!-- Логин (менять можно всегда) -->
+                <form method="POST" action="/users/edit/{{ user.id }}" class="d-flex flex-wrap gap-2 align-items-center">
                     <input type="text" name="username" value="{{ user.username }}" class="form-control form-control-sm" style="width: 120px;" required>
-
-                    <!-- Роль (нельзя менять себе) -->
                     {% if user.id != current_user.id %}
                     <select name="role" class="form-select form-select-sm" style="width: auto;">
                         <option value="user" {% if user.role == 'user' %}selected{% endif %}>Пользователь</option>
@@ -63,15 +58,11 @@
                     {% else %}
                     <span class="align-self-center ms-2">{{ user.role }}</span>
                     {% endif %}
-
-                    <!-- Пароль (необязательный) -->
                     <input type="password" name="password" class="form-control form-control-sm" placeholder="Новый пароль" style="width: 140px;">
-
                     <button type="submit" class="btn btn-sm btn-primary" title="Сохранить">💾</button>
                 </form>
-                <!-- Кнопка удаления: только для обычных пользователей и не для самого себя -->
                 {% if user.role != 'admin' and user.id != current_user.id %}
-                <a href="{{ url_for('users.delete_user', user_id=user.id) }}" class="btn btn-sm btn-danger ms-1"
+                <a href="/users/delete/{{ user.id }}" class="btn btn-sm btn-danger ms-1"
                    onclick="return confirm('Удалить пользователя {{ user.username }}?')">🗑️</a>
                 {% endif %}
             </td>

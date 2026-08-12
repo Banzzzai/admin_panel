@@ -1,75 +1,81 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
-from flask_login import login_required, current_user
-from functools import wraps
-from models import db, User, UserSession
+from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from models import User, UserSession, SessionLocal
+from auth import manager
 from datetime import datetime, timedelta
 
-activity_bp = Blueprint('activity', __name__)
+router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
-def admin_required(func):
-    "Декоратор: доступ только для администраторов"
-    @wraps(func)
-    @login_required
-    def wrapper(*args, **kwargs):
-        if current_user.role != 'admin':
-            flash('Доступ к активности разрешён только администраторам', 'danger')
-            return redirect(url_for('index'))
-        return func(*args, **kwargs)
-    return wrapper
+def admin_required(user=Depends(manager)):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Требуются права администратора")
+    return user
 
-@activity_bp.route('/heartbeat')
-@login_required
-def heartbeat():
-    "Обновляет время последней активности текущей сессии"
-    session_id = request.args.get('session_id')
+@router.get("/heartbeat")
+def heartbeat(session_id: int = None, user=Depends(manager)):
     if session_id:
-        session = UserSession.query.get(session_id)
-        if session and session.user_id == current_user.id:
-            session.last_activity = datetime.utcnow()
-            db.session.commit()
-    return '', 204
+        db = SessionLocal()
+        try:
+            session = db.query(UserSession).get(session_id)
+            if session and session.user_id == user.id:
+                session.last_activity = datetime.utcnow()
+                db.commit()
+        finally:
+            db.close()
+    return Response(status_code=204)
 
-@activity_bp.route('/')
-@login_required
-@admin_required
-def user_activity():
-    "Страница активности всех пользователей"
-    users = User.query.all()
+@router.get("/")
+def user_activity(request: Request, user=Depends(admin_required)):
+    db = SessionLocal()
+    try:
+        users = db.query(User).all()
+        # Загружаем все сессии для каждого пользователя, сортируем по убыванию login_time
+        for u in users:
+            sessions = db.query(UserSession).filter(UserSession.user_id == u.id)\
+                          .order_by(UserSession.login_time.desc()).all()
+            u.all_sessions = sessions
+            # Пользователь онлайн, если есть хотя бы одна активная сессия
+            u.is_online = any(s.is_active for s in sessions)
 
-    # Пользователь онлайн, если есть хотя бы одна активная сессия
-    for u in users:
-        u.is_online = any(s.is_active for s in u.sessions)
+        active_session = db.query(UserSession).filter(
+            UserSession.user_id == user.id,
+            UserSession.is_active == True
+        ).order_by(UserSession.login_time.desc()).first()
+        current_session_id = active_session.id if active_session else None
+    finally:
+        db.close()
 
-    # Получаем ID активной сессии текущего пользователя для heartbeat
-    active_session = UserSession.query.filter_by(
-        user_id=current_user.id, is_active=True
-    ).order_by(UserSession.login_time.desc()).first()
-    current_session_id = active_session.id if active_session else None
+    return templates.TemplateResponse("activity.html", {
+        "request": request,
+        "users": users,
+        "current_session_id": current_session_id,
+        "current_user": user
+    })
 
-    return render_template(
-        'activity.html',
-        users=users,
-        current_session_id=current_session_id
-    )
+@router.get("/user/{user_id}")
+def user_activity_detail(request: Request, user_id: int, page: int = 1, user=Depends(admin_required)):
+    db = SessionLocal()
+    try:
+        target = db.query(User).get(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        per_page = 10
+        total = db.query(UserSession).filter(UserSession.user_id == user_id).count()
+        sessions = db.query(UserSession).filter(UserSession.user_id == user_id)\
+            .order_by(UserSession.login_time.desc())\
+            .offset((page - 1) * per_page).limit(per_page).all()
+        total_pages = (total + per_page - 1) // per_page
+    finally:
+        db.close()
 
-@activity_bp.route('/user/<int:user_id>')
-@login_required
-@admin_required
-def user_activity_detail(user_id):
-    "История сессий конкретного пользователя с выводом по 10 записей"
-    user = User.query.get_or_404(user_id)
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-
-    pagination = UserSession.query.filter_by(user_id=user.id)\
-        .order_by(UserSession.login_time.desc())\
-        .paginate(page=page, per_page=per_page, error_out=False)
-
-    sessions = pagination.items
-
-    return render_template(
-        'user_activity_detail.html',
-        user=user,
-        sessions=sessions,
-        pagination=pagination
-    )
+    return templates.TemplateResponse("user_activity_detail.html", {
+        "request": request,
+        "user": target,
+        "sessions": sessions,
+        "page": page,
+        "total_pages": total_pages,
+        "current_user": user
+    })
