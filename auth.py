@@ -22,7 +22,6 @@ def login():
             db.session.add(session)
             db.session.commit()
             flash('Вход выполнен', 'success')
-            # Перенаправление в зависимости от роли
             if user.role == 'admin':
                 return redirect(url_for('users.user_list'))
             else:

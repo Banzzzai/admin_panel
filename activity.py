@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 activity_bp = Blueprint('activity', __name__)
 
 def admin_required(func):
-    """Декоратор: доступ только для администраторов"""
+    "Декоратор: доступ только для администраторов"
     @wraps(func)
     @login_required
     def wrapper(*args, **kwargs):
@@ -20,7 +20,7 @@ def admin_required(func):
 @activity_bp.route('/heartbeat')
 @login_required
 def heartbeat():
-    """Обновляет время последней активности текущей сессии"""
+    "Обновляет время последней активности текущей сессии"
     session_id = request.args.get('session_id')
     if session_id:
         session = UserSession.query.get(session_id)
@@ -33,7 +33,7 @@ def heartbeat():
 @login_required
 @admin_required
 def user_activity():
-    """Страница активности всех пользователей"""
+    "Страница активности всех пользователей"
     users = User.query.all()
 
     # Пользователь онлайн, если есть хотя бы одна активная сессия
@@ -56,7 +56,7 @@ def user_activity():
 @login_required
 @admin_required
 def user_activity_detail(user_id):
-    """История сессий конкретного пользователя с пагинацией по 10 записей"""
+    "История сессий конкретного пользователя с выводом по 10 записей"
     user = User.query.get_or_404(user_id)
     page = request.args.get('page', 1, type=int)
     per_page = 10

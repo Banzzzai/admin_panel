@@ -1,12 +1,8 @@
-// heartbeat.js — поддержание актуального времени last_activity на сервере
-
-// Идентификатор активной сессии должен быть передан из шаблона
-// (записан в глобальную переменную window.userSessionId)
-const HEARTBEAT_INTERVAL = 30000; // 30 секунд
+const HEARTBEAT_INTERVAL = 30000;
 
 function sendHeartbeat() {
     if (!window.userSessionId) {
-        // Если session_id отсутствует (пользователь не залогинен или уже вышел), ничего не делаем
+        // Если session_id отсутствует
         return;
     }
 
@@ -19,7 +15,7 @@ function sendHeartbeat() {
             // Сессия истекла или пользователь разлогинен на сервере
             console.warn('Heartbeat: сессия недействительна, очищаем sessionId');
             window.userSessionId = null;
-            // Опционально — перенаправление на страницу входа
+            //перенаправление на страницу входа
             // window.location.href = '/login';
         } else if (!response.ok) {
             console.error('Heartbeat error:', response.status);

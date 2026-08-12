@@ -6,7 +6,7 @@ class Config:
     # Параметры подключения к PostgreSQL (значения по умолчанию для docker-compose)
     DB_USER = os.environ.get('POSTGRES_USER', 'admin_user')
     DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'admin_password')
-    DB_HOST = os.environ.get('POSTGRES_HOST', 'db')      # имя сервиса в docker-compose
+    DB_HOST = os.environ.get('POSTGRES_HOST', 'db')      
     DB_PORT = os.environ.get('POSTGRES_PORT', '5432')
     DB_NAME = os.environ.get('POSTGRES_DB', 'admin_panel')
 

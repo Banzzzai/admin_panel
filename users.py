@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash
 users_bp = Blueprint('users', __name__)
 
 def admin_required(func):
-    """Ограничивает доступ: только для пользователей с ролью 'admin'."""
+    "Ограничивает доступ: только для пользователей с ролью 'admin'."
     @wraps(func)
     @login_required
     def wrapper(*args, **kwargs):
@@ -67,12 +67,10 @@ def delete_user(user_id):
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
 
-    # Запрет смены собственной роли
     if user.id == current_user.id and 'role' in request.form:
         flash('Вы не можете изменить свою собственную роль', 'danger')
         return redirect(url_for('users.user_list'))
 
-    # --- Смена логина ---
     new_username = request.form.get('username', '').strip()
     if new_username and new_username != user.username:
         if User.query.filter(User.username == new_username, User.id != user.id).first():
@@ -80,11 +78,9 @@ def edit_user(user_id):
             return redirect(url_for('users.user_list'))
         user.username = new_username
 
-    # --- Смена роли (только другим) ---
     if 'role' in request.form and user.id != current_user.id:
         user.role = request.form['role']
 
-    # --- Смена пароля ---
     new_password = request.form.get('password', '').strip()
     if new_password:
         user.password_hash = generate_password_hash(new_password)
