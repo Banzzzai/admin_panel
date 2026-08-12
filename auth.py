@@ -44,10 +44,17 @@ def login(request: Request,
 
     db = SessionLocal()
     try:
+        # Закрываем ВСЕ предыдущие активные сессии этого пользователя
+        db.query(UserSession).filter(
+            UserSession.user_id == user.id,
+            UserSession.is_active == True
+        ).update({"is_active": False, "logout_time": datetime.utcnow()})
+
+        # Создаём новую сессию
         ip = request.client.host
         ua = request.headers.get('User-Agent', '')
-        session = UserSession(user_id=user.id, ip_address=ip, user_agent=ua)
-        db.add(session)
+        new_session = UserSession(user_id=user.id, ip_address=ip, user_agent=ua)
+        db.add(new_session)
         db.commit()
     finally:
         db.close()
