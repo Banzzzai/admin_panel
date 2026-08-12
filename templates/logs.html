@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Просмотр логов (auth.log)</h2>
+<div class="card">
+    <div class="card-body bg-dark text-light" style="max-height: 500px; overflow-y: scroll;">
+        <pre style="margin:0; white-space: pre-wrap; word-wrap: break-word;">
+{% for line in lines %}{{ line }}{% endfor %}
+        </pre>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="text-center mt-5">
+    <h2>Добро пожаловать, {{ current_user.username }}!</h2>
+    <p class="text-muted">У вас нет доступа к административным функциям.</p>
+</div>
+{% endblock %}

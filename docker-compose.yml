@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:13-alpine
+    container_name: admin_panel_db
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: admin_password
+      POSTGRES_DB: admin_panel
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  admin-panel:
+    build: .
+    container_name: admin_panel
+    ports:
+      - "5000:5000"
+    volumes:
+      # Раскомментировать и указать реальный путь к логу хоста
+      - /var/log/auth.log:/var/log/auth.log:ro
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=admin_user
+      - POSTGRES_PASSWORD=admin_password
+      - POSTGRES_DB=admin_panel
+      - SECRET_KEY=change-me-in-production
+      - LOG_FILE_PATH=/var/log/auth.log
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
