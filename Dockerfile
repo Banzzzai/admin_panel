@@ -7,17 +7,14 @@ ENV PYTHONUNBUFFERED=1
 
 RUN apk add --no-cache curl gcc musl-dev libffi-dev openssl-dev
 
-# Установка uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && cp /root/.local/bin/uv /usr/local/bin/uv \
     && chmod +x /usr/local/bin/uv \
     && uv --version
 
-# Копируем сгенерированный requirements.txt и устанавливаем системно
 COPY requirements.txt .
 RUN uv pip install --system --no-cache -r requirements.txt
 
-# Создаём пользователя и каталоги
 RUN adduser -D appuser \
     && mkdir -p /app/data \
     && touch /var/log/auth.log \
@@ -25,7 +22,6 @@ RUN adduser -D appuser \
 
 USER appuser
 
-# Копируем код
 COPY --chown=appuser . .
 
 EXPOSE 5000

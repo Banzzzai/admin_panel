@@ -13,18 +13,16 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Подключаем роутеры
+
 app.include_router(auth_router)
 app.include_router(users_router, prefix="/users")
 app.include_router(logs_router, prefix="/logs")
 app.include_router(activity_router, prefix="/activity")
 
-# Создание таблиц при старте (только для разработки, в продакшене использовать миграции)
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
 
-# Dependency для получения сессии БД
 def get_db():
     db = SessionLocal()
     try:
@@ -32,7 +30,6 @@ def get_db():
     finally:
         db.close()
 
-# Главная страница
 @app.get("/")
 def index(request: Request, user=Depends(manager.optional)):
     if not user:

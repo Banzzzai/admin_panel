@@ -3,7 +3,7 @@ import os
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'supersecretkey-change-me'
 
-    # Параметры подключения к PostgreSQL (значения по умолчанию для docker-compose)
+    # Параметры подключения к PostgreSQL
     DB_USER = os.environ.get('POSTGRES_USER', 'admin_user')
     DB_PASSWORD = os.environ.get('POSTGRES_PASSWORD', 'admin_password')
     DB_HOST = os.environ.get('POSTGRES_HOST', 'db')      
@@ -15,5 +15,5 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-    'pool_pre_ping': True,   # проверяет живость соединения перед использованием
+    'pool_pre_ping': True,   # проверяет живое ли соединение
 }

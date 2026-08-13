@@ -44,7 +44,7 @@ def login(request: Request,
 
     db = SessionLocal()
     try:
-        # Закрываем ВСЕ предыдущие активные сессии этого пользователя
+        # Закрываем все предыдущие активные сессии этого пользователя
         db.query(UserSession).filter(
             UserSession.user_id == user.id,
             UserSession.is_active == True

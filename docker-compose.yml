@@ -16,7 +16,6 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      # Раскомментировать и указать реальный путь к логу хоста
         - .:/app
         - /var/log/auth.log:/var/log/auth.log:ro
     environment:
