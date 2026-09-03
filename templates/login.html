@@ -3,6 +3,13 @@
 <div class="row justify-content-center">
     <div class="col-md-4">
         <h2 class="mb-4">Вход в систему</h2>
+
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+
         <form method="POST" action="/login">
             <div class="mb-3">
                 <label for="username" class="form-label">Логин</label>

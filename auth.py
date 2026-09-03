@@ -38,18 +38,29 @@ def login(request: Request,
     try:
         user = db.query(User).filter(User.username == username).first()
         if not user:
-            raise HTTPException(status_code=401, detail="Неверные учётные данные")
+            return templates.TemplateResponse("login.html", {
+                "request": request,
+                "error": "Неверный логин или пароль, попробуйте ещё раз"
+            }, status_code=400)
 
+        # Проверка блокировки
         if user.locked_until and user.locked_until > datetime.utcnow():
-            raise HTTPException(status_code=403, detail="Аккаунт заблокирован. Попробуйте позже.")
+            return templates.TemplateResponse("login.html", {
+                "request": request,
+                "error": "Аккаунт заблокирован. Попробуйте позже."
+            }, status_code=403)
 
         if not verify_password(password, user.password_hash):
+            # Увеличиваем счётчик неудачных попыток
             user.failed_login_attempts += 1
             if user.failed_login_attempts >= 5:
                 user.locked_until = datetime.utcnow() + timedelta(minutes=15)
                 user.failed_login_attempts = 0
             db.commit()
-            raise HTTPException(status_code=401, detail="Неверные учётные данные")
+            return templates.TemplateResponse("login.html", {
+                "request": request,
+                "error": "Неверный логин или пароль, попробуйте ещё раз"
+            }, status_code=400)
 
         user.failed_login_attempts = 0
         user.locked_until = None
@@ -58,6 +69,7 @@ def login(request: Request,
         access_token = manager.create_access_token(data={"sub": user.username})
         resp = RedirectResponse(url="/", status_code=303)
         manager.set_cookie(resp, access_token)
+
 
         db.query(UserSession).filter(
             UserSession.user_id == user.id,
