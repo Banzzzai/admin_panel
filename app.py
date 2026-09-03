@@ -8,16 +8,18 @@ from auth import router as auth_router, manager
 from users import router as users_router
 from logs import router as logs_router
 from activity import router as activity_router
+from audit import router as audit_router
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-
+# Подключаем роутеры
 app.include_router(auth_router)
 app.include_router(users_router, prefix="/users")
 app.include_router(logs_router, prefix="/logs")
 app.include_router(activity_router, prefix="/activity")
+app.include_router(audit_router, prefix="/audit")
 
 @app.on_event("startup")
 def startup():

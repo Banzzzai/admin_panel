@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,7 +20,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    {% if current_user and current_user.role == 'admin' %}
+                    {% if current_user is defined and current_user and current_user.role == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="/users">Пользователи</a>
                     </li>
@@ -30,10 +30,13 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/activity">Активность</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/audit">Журнал</a>
+                    </li>
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
-                    {% if current_user %}
+                    {% if current_user is defined and current_user %}
                     <li class="nav-item">
                         <span class="navbar-text me-3">{{ current_user.username }} ({{ current_user.role }})</span>
                     </li>
@@ -51,15 +54,6 @@
     </nav>
 
     <div class="container">
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-
         {% block content %}{% endblock %}
     </div>
 

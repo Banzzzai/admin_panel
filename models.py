@@ -14,9 +14,12 @@ class User(Base):
     password_hash = Column(String(256), nullable=False)
     role = Column(String(20), default='user')
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime, nullable=True)
+
     sessions = relationship('UserSession', backref='user', lazy='dynamic')
 
-    # методы для fastapi-login
     @property
     def is_authenticated(self):
         return True
@@ -38,3 +41,17 @@ class UserSession(Base):
     logout_time = Column(DateTime, nullable=True)
     last_activity = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+
+# === Новая модель для аудита ===
+class AuditLog(Base):
+    __tablename__ = 'audit_logs'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))   # кто совершил действие
+    action = Column(String(100), nullable=False)        # тип действия (create_user, delete_user, edit_user)
+    target_user_id = Column(Integer, nullable=True)     # над кем совершено действие
+    details = Column(String(500), nullable=True)        # дополнительная информация
+    ip_address = Column(String(45))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    actor = relationship('User', foreign_keys=[user_id], backref='audit_actions')
+# ==================================

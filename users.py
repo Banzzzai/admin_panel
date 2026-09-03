@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends, Form, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from models import User, UserSession, SessionLocal
+from models import User, UserSession, SessionLocal, AuditLog  # <-- добавлен AuditLog
 from auth import manager, hash_password
 import bcrypt
 
@@ -13,6 +13,18 @@ def admin_required(user=Depends(manager)):
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Требуются права администратора")
     return user
+
+# === Вспомогательная функция для добавления записи в аудит ===
+def add_audit_log(db: Session, actor_id: int, action: str, target_user_id: int = None, details: str = None, ip_address: str = None):
+    log = AuditLog(
+        user_id=actor_id,
+        action=action,
+        target_user_id=target_user_id,
+        details=details,
+        ip_address=ip_address
+    )
+    db.add(log)
+# =============================================================
 
 @router.get("/")
 def user_list(request: Request, user=Depends(manager)):
@@ -51,13 +63,26 @@ def create_user(request: Request,
             role=role
         )
         db.add(new_user)
+        db.flush()  # чтобы получить new_user.id
+
+        # === Логирование создания пользователя ===
+        add_audit_log(
+            db,
+            actor_id=user.id,
+            action="create_user",
+            target_user_id=new_user.id,
+            details=f"Создан пользователь {new_user.username} с ролью {new_user.role}",
+            ip_address=request.client.host
+        )
+        # ========================================
+
         db.commit()
     finally:
         db.close()
     return RedirectResponse(url="/users", status_code=303)
 
 @router.get("/delete/{user_id}")
-def delete_user(user_id: int, user=Depends(admin_required)):
+def delete_user(user_id: int, request: Request, user=Depends(admin_required)):
     db = SessionLocal()
     try:
         target = db.query(User).get(user_id)
@@ -67,6 +92,18 @@ def delete_user(user_id: int, user=Depends(admin_required)):
             raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
         if target.role == "admin":
             raise HTTPException(status_code=400, detail="Нельзя удалить администратора")
+
+        # === Логирование удаления ===
+        add_audit_log(
+            db,
+            actor_id=user.id,
+            action="delete_user",
+            target_user_id=target.id,
+            details=f"Удалён пользователь {target.username}",
+            ip_address=request.client.host
+        )
+        # =============================
+
         db.delete(target)
         db.commit()
     finally:
@@ -85,17 +122,32 @@ def edit_user(user_id: int,
         target = db.query(User).get(user_id)
         if not target:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
-        # смена логина
+
+        # Смена логина
         if username and username != target.username:
             if db.query(User).filter(User.username == username, User.id != user_id).first():
                 raise HTTPException(status_code=400, detail="Логин занят")
             target.username = username
-        # смена роли (только другим)
+
+        # Смена роли (только другим)
         if role and target.id != user.id:
             target.role = role
-        # смена пароля
+
+        # Смена пароля
         if password:
             target.password_hash = hash_password(password)
+
+        # === Логирование редактирования ===
+        add_audit_log(
+            db,
+            actor_id=user.id,
+            action="edit_user",
+            target_user_id=target.id,
+            details=f"Изменены данные пользователя {target.username}",
+            ip_address=request.client.host
+        )
+        # =================================
+
         db.commit()
     finally:
         db.close()

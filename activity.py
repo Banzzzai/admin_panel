@@ -67,10 +67,8 @@ def user_activity_detail(request: Request, user_id: int, page: int = 1, user=Dep
         # Сначала получаем общее количество записей
         total = db.query(UserSession).filter(UserSession.user_id == user_id).count()
 
-        # Вычисляем общее число страниц (минимум 1, если нет записей)
         total_pages = max(1, (total + per_page - 1) // per_page) if total > 0 else 1
 
-        # Защита от выхода за границы страниц
         if page < 1:
             page = 1
         elif page > total_pages:
