@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from auth import manager
+from config import Config
 import os
 
 router = APIRouter()
@@ -11,7 +12,7 @@ LOG_FILE = os.environ.get('LOG_FILE_PATH', '/var/log/auth.log')
 
 @router.get("/", response_class=HTMLResponse)
 def view_logs(request: Request, user=Depends(manager)):
-    if user.role != "admin":
+    if user.role != Config.KEYCLOAK_ADMIN_ROLE:
         return RedirectResponse(url="/", status_code=303)
 
     lines_to_show = 200

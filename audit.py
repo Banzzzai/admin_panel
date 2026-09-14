@@ -3,12 +3,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from models import SessionLocal, AuditLog
 from auth import manager
+from config import Config
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 def admin_required(user=Depends(manager)):
-    if user.role != "admin":
+    if user.role != Config.KEYCLOAK_ADMIN_ROLE:
         raise HTTPException(status_code=403, detail="Требуются права администратора")
     return user
 

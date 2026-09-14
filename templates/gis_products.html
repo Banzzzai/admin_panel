@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Продукты</h2>
+
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header">Создать продукт</div>
+    <div class="card-body">
+        <form method="POST" action="/gis/products/create" class="row g-3">
+            <div class="col-md-10"><input type="text" name="name" class="form-control" placeholder="Название" required></div>
+            <div class="col-md-2"><button class="btn btn-success w-100">Создать</button></div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped">
+    <thead><tr><th>ID</th><th>Название</th><th>Действия</th></tr></thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td><a href="/gis/products/delete/{{ item.id }}" class="btn btn-sm btn-danger"
+                   onclick="return confirm('Удалить?')"</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

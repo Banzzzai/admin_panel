@@ -9,6 +9,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - default
 
   admin-panel:
     build: .
@@ -17,17 +19,38 @@ services:
       - "5000:5000"
     volumes:
       - /var/log/auth.log:/var/log/auth.log:ro
+    group_add:
+      - "4"                      
+    extra_hosts:
+      - "10.13.16.230:host-gateway"
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=admin_user
       - POSTGRES_PASSWORD=admin_password
       - POSTGRES_DB=admin_panel
-      - SECRET_KEY=my-very-secure-and-stable-key   # <-- добавлено
+      - SECRET_KEY=my-very-secure-and-stable-key
       - LOG_FILE_PATH=/var/log/auth.log
+      - KEYCLOAK_URL=http://10.13.16.230:8085
+      - KEYCLOAK_REALM=stribog-auth-dev
+      - KEYCLOAK_CLIENT_ID=admin-panel
+      - KEYCLOAK_CLIENT_SECRET=ScR3xlzSBxeFPcBVP1AaDj7kHRE8eydc
+      - KEYCLOAK_REDIRECT_URI=http://10.13.16.230:5000/auth/callback
+      - KEYCLOAK_ADMIN_CLIENT_ID=admin-panel-backend
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=MZ9AeWjXf8ElpsDJIYMQh8HTTpj5TYVK
+      - KEYCLOAK_ADMIN_ROLE=admin-panel-admin
+      - KEYCLOAK_DEFAULT_ROLE=viewer
+      - GIS_API_URL=http://gis_api:8001
     depends_on:
       - db
     restart: unless-stopped
+    networks:
+      - default
+      - stribog3
 
 volumes:
   postgres_data:
+
+networks:
+  stribog3:
+    external: true

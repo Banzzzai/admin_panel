@@ -12,46 +12,54 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="/">Админ-панель</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    {% if current_user is defined and current_user and current_user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/users">Пользователи</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/logs">Логи</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/activity">Активность</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/audit">Журнал</a>
-                    </li>
-                    {% endif %}
-                </ul>
-                <ul class="navbar-nav">
-                    {% if current_user is defined and current_user %}
-                    <li class="nav-item">
-                        <span class="navbar-text me-3">{{ current_user.username }} ({{ current_user.role }})</span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/logout">Выйти</a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login">Войти</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Админ-панель</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navmenu">
+            <ul class="navbar-nav me-auto">
+                {% if current_user is defined and current_user and current_user.role == 'admin-panel-admin' %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        Пользователи
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/users">Управление пользователями</a></li>
+                        <li><a class="dropdown-item" href="/activity">Активность</a></li>
+                        <li><a class="dropdown-item" href="/audit">Журнал</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        Данные
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/gis/product-sets">Продукт сеты</a></li>
+                        <li><a class="dropdown-item" href="/gis/layer-chunks">Чанки</a></li>
+                        <li><a class="dropdown-item" href="/gis/products">Продукты</a></li>
+                        <li><a class="dropdown-item" href="/gis/workspaces">Воркспейсы</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logs">Логи</a>
+                </li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav">
+                {% if current_user is defined and current_user %}
+                <li class="nav-item">
+                    <span class="navbar-text me-3">{{ current_user.username }}</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Выйти</a>
+                </li>
+                {% endif %}
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <div class="container">
         {% block content %}{% endblock %}
