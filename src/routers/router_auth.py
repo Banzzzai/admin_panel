@@ -43,7 +43,6 @@ def _extract_roles(userinfo: dict) -> list[str]:
     roles = []
     if "realm_access" in userinfo:
         roles += userinfo["realm_access"].get("roles", [])
-    # Если у клиента есть client roles:
     resource = userinfo.get("resource_access", {})
     if Config.KEYCLOAK_CLIENT_ID in resource:
         roles += resource[Config.KEYCLOAK_CLIENT_ID].get("roles", [])
@@ -63,7 +62,7 @@ def _upsert_user(db: Session, userinfo: dict) -> User:
         user = User(
             username=username,
             email=userinfo.get("email"),
-            password_hash="",           # пароли теперь в Keycloak
+            password_hash="",
             role=local_role,
             failed_login_attempts=0,
         )
@@ -91,9 +90,12 @@ async def login(request: Request):
 async def auth_callback(request: Request):
     """Keycloak вернул код — меняем на токен, ставим локальную cookie."""
     token = await oauth.keycloak.authorize_access_token(request)
+
+    # Сохраняем id_token для глобального logout в Keycloak
+    request.session["id_token"] = token.get("id_token")
+
     userinfo = token.get("userinfo")
     if not userinfo:
-        # если id_token пришёл, попробуем распарсить
         userinfo = token.get("id_token") and token["id_token"].get("userinfo")
     if not userinfo:
         raise HTTPException(401, "Не удалось получить данные пользователя")
@@ -123,7 +125,7 @@ async def auth_callback(request: Request):
 
 @router.get("/logout")
 async def logout(request: Request):
-    """Локальный logout + глобальный logout в Keycloak."""
+    """Глобальный logout: завершаем сессию Keycloak + локальную."""
     user = await manager.optional(request)
     if user:
         db = SessionLocal()
@@ -136,12 +138,20 @@ async def logout(request: Request):
         finally:
             db.close()
 
-    # Глобальный logout Keycloak (завершит SSO-сессию)
+    # Достаём id_token до очистки сессии
+    id_token = request.session.pop("id_token", None)
+    request.session.pop("user", None)
+
+    # Формируем URL logout Keycloak
     kc_logout = (
         f"{Config.KEYCLOAK_URL}/realms/{Config.KEYCLOAK_REALM}"
         f"/protocol/openid-connect/logout"
-        f"?redirect_uri={Config.KEYCLOAK_REDIRECT_URI.replace('/auth/callback', '/login')}"
+        f"?client_id={Config.KEYCLOAK_CLIENT_ID}"
+        f"&post_logout_redirect_uri=http://10.13.16.230:5000/login"
     )
+    if id_token:
+        kc_logout += f"&id_token_hint={id_token}"
+
     resp = RedirectResponse(url=kc_logout, status_code=303)
     manager.set_cookie(resp, "")
     return resp
