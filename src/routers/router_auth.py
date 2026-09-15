@@ -5,8 +5,8 @@ from fastapi_login import LoginManager
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config as StarletteConfig
 from sqlalchemy.orm import Session
-from models import User, UserSession, SessionLocal
-from config import Config
+from ..models import User, UserSession, SessionLocal
+from ..settings.config import Config
 from datetime import datetime
 
 router = APIRouter()
@@ -20,7 +20,6 @@ oauth.register(
     name="keycloak",
     client_id=Config.KEYCLOAK_CLIENT_ID,
     client_secret=Config.KEYCLOAK_CLIENT_SECRET,
-    # Вручную, чтобы не тянуть metadata с localhost:
     authorize_url=f"{Config.KEYCLOAK_URL}/realms/{Config.KEYCLOAK_REALM}/protocol/openid-connect/auth",
     access_token_url=f"{Config.KEYCLOAK_URL}/realms/{Config.KEYCLOAK_REALM}/protocol/openid-connect/token",
     userinfo_endpoint=f"{Config.KEYCLOAK_URL}/realms/{Config.KEYCLOAK_REALM}/protocol/openid-connect/userinfo",

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from models import User, UserSession, SessionLocal
-from auth import manager
-from config import Config
+from ..models import User, UserSession, SessionLocal
+from .router_auth import manager
+from ..settings.config import Config
 from datetime import datetime, timedelta
 
 router = APIRouter()

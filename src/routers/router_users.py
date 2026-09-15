@@ -4,9 +4,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import httpx
 
-from models import User, UserSession, SessionLocal, AuditLog
-from auth import manager
-from config import Config
+from ..models import User, UserSession, SessionLocal, AuditLog
+from .router_auth import manager
+from ..settings.config import Config
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -140,7 +140,7 @@ async def delete_user(user_id: str, request: Request, user=Depends(admin_require
         db.commit()
     finally:
         db.close()
-    return RedirectResponse(url="/users", status_code=303)
+    return RedirectResponse(url="/auth/users", status_code=303)
 
 
 @router.post("/edit/{user_id}")
@@ -193,4 +193,4 @@ async def edit_user(user_id: str,
         db.commit()
     finally:
         db.close()
-    return RedirectResponse(url="/users", status_code=303)
+    return RedirectResponse(url="/auth/users", status_code=303)

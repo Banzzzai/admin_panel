@@ -4,8 +4,8 @@ from fastapi.templating import Jinja2Templates
 import httpx
 import os
 
-from auth import manager
-from config import Config
+from .router_auth import manager
+from ..settings.config import Config
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")

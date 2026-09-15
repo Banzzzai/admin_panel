@@ -22,7 +22,7 @@
 
             {# --------- Email --------- #}
             <td>
-                <form method="POST" action="/users/edit/{{ u.id }}">
+                <form method="POST" action="/auth/users/edit/{{ u.id }}">
                     <input type="email" name="email" value="{{ u.email or '' }}"
                            class="form-control form-control-sm mb-1" placeholder="Email">
                     <button type="submit" class="btn btn-sm btn-outline-primary w-100">💾 Email</button>
@@ -31,7 +31,7 @@
 
             {# --------- Имя и Фамилия --------- #}
             <td>
-                <form method="POST" action="/users/edit/{{ u.id }}">
+                <form method="POST" action="/auth/users/edit/{{ u.id }}">
                     <input type="text" name="firstName" value="{{ u.firstName or '' }}"
                            class="form-control form-control-sm mb-1" placeholder="Имя">
                     <input type="text" name="lastName" value="{{ u.lastName or '' }}"
@@ -42,7 +42,7 @@
 
             {# --------- Роли --------- #}
             <td>
-                <form method="POST" action="/users/edit/{{ u.id }}">
+                <form method="POST" action="/auth/users/edit/{{ u.id }}">
                     <select name="role" class="form-select form-select-sm mb-1">
                         <option value="">— не менять —</option>
                         {% for r in all_roles %}
@@ -55,7 +55,7 @@
 
             {# --------- Пароль --------- #}
             <td>
-                <form method="POST" action="/users/edit/{{ u.id }}">
+                <form method="POST" action="/auth/users/edit/{{ u.id }}">
                     <input type="password" name="password"
                            class="form-control form-control-sm mb-1" placeholder="Новый пароль">
                     <button type="submit" class="btn btn-sm btn-outline-primary w-100">💾 Пароль</button>
@@ -66,7 +66,7 @@
             {% if current_user.role == admin_role %}
             <td>
                 {% if u.username != current_user.username and admin_role not in u.realm_roles %}
-                <a href="/users/delete/{{ u.id }}" class="btn btn-sm btn-danger"
+                <a href="/auth/users/delete/{{ u.id }}" class="btn btn-sm btn-danger"
                    onclick="return confirm('Удалить пользователя {{ u.username }}?')">🗑️</a>
                 {% endif %}
             </td>

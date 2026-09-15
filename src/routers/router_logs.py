@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from auth import manager
-from config import Config
+from .router_auth import manager
+from ..settings.config import Config
 import os
 
 router = APIRouter()
