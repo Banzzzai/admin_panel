@@ -53,4 +53,3 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     actor = relationship('User', foreign_keys=[user_id], backref='audit_actions')
-# ==================================

@@ -7,7 +7,7 @@ from .router_auth import manager
 from ..settings.config import Config
 from datetime import datetime, timedelta
 
-router = APIRouter()
+router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory="templates")
 
 def admin_required(user=Depends(manager)):

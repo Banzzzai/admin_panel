@@ -5,7 +5,7 @@ from .router_auth import manager
 from ..settings.config import Config
 import os
 
-router = APIRouter()
+router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory="templates")
 
 LOG_FILE = os.environ.get('LOG_FILE_PATH', '/var/log/auth.log')

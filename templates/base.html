@@ -36,10 +36,10 @@
                         Данные
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/gis/product-sets">Продукт сеты</a></li>
-                        <li><a class="dropdown-item" href="/gis/layer-chunks">Чанки</a></li>
-                        <li><a class="dropdown-item" href="/gis/products">Продукты</a></li>
-                        <li><a class="dropdown-item" href="/gis/workspaces">Воркспейсы</a></li>
+                        <li><a class="dropdown-item" href="/gis/product-sets/">Продукт сеты</a></li>
+                        <li><a class="dropdown-item" href="/gis/layer-chunks/">Чанки</a></li>
+                        <li><a class="dropdown-item" href="/gis/products/">Продукты</a></li>
+                        <li><a class="dropdown-item" href="/gis/workspaces/">Воркспейсы</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">
@@ -61,7 +61,22 @@
     </div>
 </nav>
 
-    <div class="container">
+    <div class="container mt-3">
+        {# ============ FLASH-СООБЩЕНИЯ ============ #}
+        {% if flash_error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Ошибка:</strong> {{ flash_error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        {% if flash_success %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ flash_success }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        {# ========================================= #}
+
         {% block content %}{% endblock %}
     </div>
 

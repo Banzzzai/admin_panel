@@ -4,15 +4,96 @@
 
 {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-<table class="table table-striped">
-    <thead><tr><th>ID</th><th>Название</th><th>Действия</th></tr></thead>
+<div class="card mb-4">
+    <div class="card-header">Создать продукт сет</div>
+    <div class="card-body">
+        <form method="POST" action="/gis/product-sets/" class="row g-3">
+            <div class="col-md-3"><input type="text" name="set_id" class="form-control" placeholder="set_id" required></div>
+            <div class="col-md-3">
+                <select name="workspace_id" class="form-select" required>
+                    <option value="">— workspace —</option>
+                    {% for ws in workspaces %}
+                    <option value="{{ ws.workspace_id }}">{{ ws.workspace_id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2"><input type="text" name="native_crs" class="form-control" placeholder="EPSG:4326" value="EPSG:4326"></div>
+            <div class="col-md-2">
+                <select name="storage_type" class="form-select">
+                    <option value="s3_cog">s3_cog</option>
+                    <option value="s3_zarr">s3_zarr</option>
+                    <option value="postgres_vector_polygon">postgres_vector_polygon</option>
+                </select>
+            </div>
+            <div class="col-md-2"><input type="text" name="storage_bucket" class="form-control" placeholder="bucket"></div>
+
+            <div class="col-12"><hr><small class="text-muted">Минимум одна dimension (обязательно для gis_api)</small></div>
+            <div class="col-md-3"><input type="text" name="dimension_id" class="form-control" placeholder="dimension_id" value="time" required></div>
+            <div class="col-md-3">
+                <select name="dimension_type" class="form-select">
+                    <option value="timestamp">timestamp</option>
+                    <option value="double">double</option>
+                    <option value="integer">integer</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="dimension_source" class="form-select">
+                    <option value="manual">manual</option>
+                    <option value="computed">computed</option>
+                </select>
+            </div>
+            <div class="col-md-3"><input type="text" name="dimension_description" class="form-control" placeholder="description" value="time dimension"></div>
+
+            <div class="col-12"><button class="btn btn-success">Создать</button></div>
+        </form>
+    </div>
+</div>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>set_id</th>
+            <th>storage</th>
+            <th>dimensions</th>
+            <th>workspace_id (редактируется)</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
     <tbody>
         {% for item in items %}
+        {% set st = item.storage_type or (item.storage_config.storage_type if item.storage_config else '—') %}
+        {% set sb = item.storage_config.storage_bucket if item.storage_config and item.storage_config.storage_bucket else '—' %}
         <tr>
-            <td>{{ item.id }}</td>
-            <td>{{ item.name }}</td>
-            <td><a href="/gis/product-sets/delete/{{ item.id }}" class="btn btn-sm btn-danger"
-                   onclick="return confirm('Удалить?')"</a></td>
+            <td><code>{{ item.set_id }}</code></td>
+            <td>{{ st }} / {{ sb }}</td>
+            <td>
+                {% for d in item.dimensions or [] %}
+                <span class="badge bg-secondary">{{ d.dimension_id }}:{{ d.dimension_type }}</span>
+                {% endfor %}
+            </td>
+            <td>
+                <form method="POST" action="/gis/product-sets/{{ item.set_id }}" class="row g-1">
+                    <input type="hidden" name="_method" value="PUT">
+                    <div class="col-md-8">
+                        <select name="workspace_id" class="form-select form-select-sm" required>
+                            {% for ws in workspaces %}
+                            <option value="{{ ws.workspace_id }}" {% if ws.workspace_id == item.workspace_id %}selected{% endif %}>
+                                {{ ws.workspace_id }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">💾 workspace</button>
+                    </div>
+                </form>
+            </td>
+            <td>
+                <form method="POST" action="/gis/product-sets/{{ item.set_id }}" onsubmit="return confirm('Удалить {{ item.set_id }}?')">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-sm btn-danger">🗑</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </tbody>

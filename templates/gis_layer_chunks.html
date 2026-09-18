@@ -4,15 +4,40 @@
 
 {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-<table class="table table-striped">
-    <thead><tr><th>ID</th><th>Название</th><th>Действия</th></tr></thead>
+<div class="alert alert-info">
+    Чанки создаются через загрузку файлов в S3/MinIO и API <code>POST /layer_chunk/</code>.
+    Здесь можно только просматривать и удалять существующие.
+</div>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>layer_chunk_id</th>
+            <th>product_set_id</th>
+            <th>dimensions</th>
+            <th>geom</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
     <tbody>
         {% for item in items %}
         <tr>
-            <td>{{ item.id }}</td>
-            <td>{{ item.name }}</td>
-            <td><a href="/gis/layer-chunks/delete/{{ item.id }}" class="btn btn-sm btn-danger"
-                   onclick="return confirm('Удалить?')"</a></td>
+            <td><code>{{ item.layer_chunk_id }}</code></td>
+            <td>{{ item.product_set_id }}</td>
+            <td>
+                {% for d in item.dimension_values or [] %}
+                <span class="badge bg-secondary">{{ d.dimension_id }}={{ d.value }}</span>
+                {% endfor %}
+            </td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ item.geom or '—' }}
+            </td>
+            <td>
+                <form method="POST" action="/gis/layer-chunks/{{ item.layer_chunk_id }}" onsubmit="return confirm('Удалить чанк {{ item.layer_chunk_id }}?')">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-sm btn-danger">🗑</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </tbody>

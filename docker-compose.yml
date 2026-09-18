@@ -41,6 +41,9 @@ services:
       - KEYCLOAK_ADMIN_ROLE=admin-panel-admin
       - KEYCLOAK_DEFAULT_ROLE=viewer
       - GIS_API_URL=http://gis_api:8001
+      - JWK_URL=http://stribog_auth-keycloak-1:8080/realms/stribog-auth-dev/protocol/openid-connect/certs
+      - BROKER_SECRET=b0f82fd00071fc226676eed2308070e67bdd55f29d91f97bf9a43745ed34bfe6
+      - TOKEN_BROKER_URL=http://stribog_auth-auth-service-internal-1:8007/internal/token
     depends_on:
       - db
     restart: unless-stopped

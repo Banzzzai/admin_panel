@@ -9,7 +9,9 @@ from ..models import User, UserSession, SessionLocal
 from ..settings.config import Config
 from datetime import datetime
 
-router = APIRouter()
+# include_in_schema=False — скрывает роуты /login, /auth/callback, /logout
+# из Swagger UI. UI admin-panel продолжает работать (cookie).
+router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory="templates")
 
 manager = LoginManager(Config.SECRET_KEY, token_url="/login", use_cookie=True)
@@ -93,6 +95,8 @@ async def auth_callback(request: Request):
 
     # Сохраняем id_token для глобального logout в Keycloak
     request.session["id_token"] = token.get("id_token")
+    # Сохраняем access_token — будем использовать его для запросов в gis_api
+    request.session["access_token"] = token.get("access_token")
 
     userinfo = token.get("userinfo")
     if not userinfo:
@@ -140,6 +144,7 @@ async def logout(request: Request):
 
     # Достаём id_token до очистки сессии
     id_token = request.session.pop("id_token", None)
+    request.session.pop("access_token", None)
     request.session.pop("user", None)
 
     # Формируем URL logout Keycloak

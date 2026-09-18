@@ -3,13 +3,14 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import httpx
-
+import time
 from ..models import User, UserSession, SessionLocal, AuditLog
 from .router_auth import manager
 from ..settings.config import Config
 
-router = APIRouter()
+router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory="templates")
+_admin_token_cache: dict = {"token": None, "expires_at": 0.0}
 
 # ------------------ Keycloak Admin API helpers ------------------
 
@@ -20,10 +21,12 @@ def _kc_admin_base() -> str:
 def _kc_token_url() -> str:
     return f"{Config.KEYCLOAK_URL}/realms/{Config.KEYCLOAK_REALM}/protocol/openid-connect/token"
 
-
 async def _get_admin_token() -> str:
-    """client_credentials → access token сервисного аккаунта."""
-    async with httpx.AsyncClient(timeout=10) as client:
+    now = time.time()
+    if _admin_token_cache["token"] and _admin_token_cache["expires_at"] > now + 30:
+        return _admin_token_cache["token"]
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.post(
             _kc_token_url(),
             data={
@@ -33,7 +36,11 @@ async def _get_admin_token() -> str:
             },
         )
         r.raise_for_status()
-        return r.json()["access_token"]
+        data = r.json()
+        _admin_token_cache["token"] = data["access_token"]
+        _admin_token_cache["expires_at"] = now + data.get("expires_in", 300)
+        return data["access_token"]
+
 
 
 async def kc_request(method: str, path: str, **kwargs):
