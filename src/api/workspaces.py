@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, Body, Path, status
 
 from src.api.deps import require_admin
 from src.api.gis_client import gis_request
-from src.api.schemas import OkMessage
 
 router = APIRouter(prefix="/workspaces", tags=["api:workspaces"])
 
