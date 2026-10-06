@@ -19,10 +19,14 @@ services:
       - "5000:5000"
     volumes:
       - /var/log/auth.log:/var/log/auth.log:ro
+      - ./src:/app/src
+      - ./main.py:/app/main.py
+      - ./templates:/app/templates
+      - ./static:/app/static
     group_add:
       - "4"                      
     extra_hosts:
-      - "10.13.16.230:host-gateway"
+      - "10.13.16.209:host-gateway"
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
@@ -31,11 +35,8 @@ services:
       - POSTGRES_DB=admin_panel
       - SECRET_KEY=my-very-secure-and-stable-key
       - LOG_FILE_PATH=/var/log/auth.log
-      - KEYCLOAK_URL=http://10.13.16.230:8085
+      - KEYCLOAK_URL=http://10.13.16.209:8085
       - KEYCLOAK_REALM=stribog-auth-dev
-      - KEYCLOAK_CLIENT_ID=admin-panel
-      - KEYCLOAK_CLIENT_SECRET=ScR3xlzSBxeFPcBVP1AaDj7kHRE8eydc
-      - KEYCLOAK_REDIRECT_URI=http://10.13.16.230:5000/auth/callback
       - KEYCLOAK_ADMIN_CLIENT_ID=admin-panel-backend
       - KEYCLOAK_ADMIN_CLIENT_SECRET=MZ9AeWjXf8ElpsDJIYMQh8HTTpj5TYVK
       - KEYCLOAK_ADMIN_ROLE=admin-panel-admin
@@ -44,6 +45,7 @@ services:
       - JWK_URL=http://stribog_auth-keycloak-1:8080/realms/stribog-auth-dev/protocol/openid-connect/certs
       - BROKER_SECRET=b0f82fd00071fc226676eed2308070e67bdd55f29d91f97bf9a43745ed34bfe6
       - TOKEN_BROKER_URL=http://stribog_auth-auth-service-internal-1:8007/internal/token
+      - CORS_ORIGIN_REGEX=https://woolf\.local(:\d+)?
     depends_on:
       - db
     restart: unless-stopped
